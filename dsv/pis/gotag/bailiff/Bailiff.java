@@ -12,6 +12,7 @@ import java.net.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.jini.core.entry.*;
 import net.jini.core.lookup.*;
@@ -55,7 +56,7 @@ public class Bailiff
     protected InetAddress myInetAddress;
 
     //HashMap of active agents in the Bailiff
-    HashMap<UUID, agitator> hmap = new HashMap<UUID, agitator>();
+    ConcurrentHashMap<UUID, agitator> hmap = new ConcurrentHashMap<UUID, agitator>();
 
 
     protected void debugMsg(String s) {
