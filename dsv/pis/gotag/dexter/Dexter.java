@@ -12,6 +12,7 @@ package dsv.pis.gotag.dexter;
 import java.io.*;
 import java.lang.*;
 import java.util.Random;
+import java.util.UUID;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -30,6 +31,9 @@ import dsv.pis.gotag.bailiff.BailiffInterface;
  */
 public class Dexter implements Serializable
 {
+  //UUID = unique identifier of the agent
+  protected UUID id;
+	
   /**
    * The string name of the Bailiff service interface, used when
    * querying the Jini lookup server.
@@ -72,6 +76,14 @@ public class Dexter implements Serializable
   }
 
   /**
+   * Returns a string representation of this service instance.
+   * @returns the UUID as a string.
+   */
+  public String toString () {
+    return id;
+  }
+  
+  /**
    * This creates a new Dexter. All the constructor needs to do is to
    * instantiate the service template.
    * @param debug True if this instance is being debugged.
@@ -84,6 +96,7 @@ public class Dexter implements Serializable
   {
     if (this.debug == false) this.debug = debug;
 
+	this.id = UUID.randomUUID();
     this.noFace = noFace;
 
     // This service template is used to query the Jini lookup server
@@ -206,7 +219,7 @@ public class Dexter implements Serializable
 
 	// Try to ping the selected Bailiff.
 
-	debugMsg ("Trying to ping...");
+	debugMsg (this + "Trying to ping...");
 
 	try {
 	  if (obj instanceof BailiffInterface) {
@@ -236,7 +249,7 @@ public class Dexter implements Serializable
 	}
 	else {
 
-	  debugMsg ("Trying to jump...");
+	  debugMsg (this + " trying to jump...");
 
 	  // This is the spot where Dexter tries to migrate.
 
