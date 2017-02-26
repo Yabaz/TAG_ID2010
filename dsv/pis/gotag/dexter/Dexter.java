@@ -75,12 +75,17 @@ public class Dexter implements Serializable
     if (debug) System.out.println (msg);
   }
 
+  //getUUID
+  public UUID getUUID(){
+	  return id;
+  }
+  
   /**
    * Returns a string representation of this service instance.
    * @returns the UUID as a string.
    */
   public String toString () {
-    return id;
+    return id.toString();
   }
   
   /**

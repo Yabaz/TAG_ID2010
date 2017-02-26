@@ -53,6 +53,9 @@ public class Bailiff
   protected Map propertyMap;
   protected JoinManager bf_joinmanager;
   protected InetAddress myInetAddress;
+  
+  //HashMap of active agents in the Bailiff
+  HashMap<UUID , agitator> hmap = new HashMap<UUID , agitator>();
 
   protected void debugMsg (String s) {
     if (debug) {
@@ -138,7 +141,10 @@ public class Bailiff
     protected String myCb;	// The name of the entry point method
     protected Object [] myArgs;	// Arguments to the entry point method
     protected java.lang.reflect.Method myMethod; // Ref. to entry point method
+	protected java.lang.reflect.Method myUUIDMethod; // Ref. to getUUID method
     protected Class [] myParms; // Class reflection of arguments
+	protected UUID id;
+	protected Object retour;
     
     /**
      * Creates a new agitator by copying th references to the client
@@ -159,6 +165,14 @@ public class Bailiff
       // the parameter signature. So, the myParms[] array is loaded with
       // the class of each entry point parameter.
 
+	  try{
+	  initializeUUID();
+	  }
+	  catch(Throwable t){
+		log.entry(t);  
+	  }
+	  
+	  
       if (0 < args.length) {
 	myParms = new Class [args.length];
 	for (int i = 0; i < args.length; i++) {
@@ -182,7 +196,32 @@ public class Bailiff
       myMethod = myObj.getClass ().getMethod (myCb, myParms);
       setContextClassLoader (myObj.getClass ().getClassLoader ());
     }
+	
+	//initialize UUID of agitator with UUID of object
+	public void initializeUUID () throws java.lang.NoSuchMethodException
+    {
+      myUUIDMethod = myObj.getClass().getMethod("getUUID");
+      setContextClassLoader (myObj.getClass().getClassLoader());
+	  try{
+		retour = myUUIDMethod.invoke(myObj);
+	  }
+	  catch(Throwable t){
+		  log.entry(t);
+	  }
+	  id = (UUID) retour;
+    }
+	
+	//getUUID
+	public UUID getUUID(){
+		return id;
+	};
+	
+	//toString
+	public String toString(){
+		return id.toString();
+	};
 
+	
     /**
      * Overrides the default run() method in class Thread (a superclass to
      * us). Then we invoke the requested entry point on the client object.
@@ -279,7 +318,9 @@ public class Bailiff
 		 + "\" args=\"" + args + "\"/>");
     }
     agitator agt = new agitator (obj, cb, args);
+	hmap.put(agt.getUUID(), agt);
     agt.initialize ();
+	//System.out.println( agt + " added to hmap");
     agt.start ();
   }
 
