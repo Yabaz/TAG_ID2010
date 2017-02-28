@@ -245,11 +245,11 @@ public class Bailiff
                 if (debug) {
                     log.entry(t);
                 }
+            } finally {
+                localAgents.remove(id);
+                debugMsg("[" + id + "] END RUNNING");
+                debugMsg("[" + id + "] " + localAgents.toString());
             }
-
-            localAgents.remove(id);
-            debugMsg("[" + id + "] END RUNNING");
-            debugMsg("[" + id + "] " + localAgents.toString());
         }
     } // class agitator
 
