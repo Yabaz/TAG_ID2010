@@ -338,6 +338,14 @@ public class Bailiff
         agt.start();
     }
 
+    // In BailiffInterface:
+
+    @Override
+    public ArrayList<UUID> getAgentsNames() throws RemoteException {
+        Set<UUID> keySet = localAgents.keySet();
+        return new ArrayList<>(keySet);
+    }
+
     /**
      * Creates a new Bailiff service instance.
      *

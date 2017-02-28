@@ -5,6 +5,11 @@
 
 package dsv.pis.gotag.bailiff;
 
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 /**
  * This interface is for the Bailiff's clients. This is mobile code which
  * move into the Bailiff's JVM for execution.
@@ -50,5 +55,16 @@ public interface BailiffInterface
             throws
             java.rmi.RemoteException,
             java.lang.NoSuchMethodException;
+
+
+    /**
+     * To retrieve the names of agents in the requested Bailiff
+     *
+     * @return
+     * @throws RemoteException
+     */
+    public ArrayList<UUID> getAgentsNames()
+            throws RemoteException;
+
 
 }
