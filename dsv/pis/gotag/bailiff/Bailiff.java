@@ -9,6 +9,7 @@ package dsv.pis.gotag.bailiff;
 import java.lang.*;
 import java.io.*;
 import java.net.*;
+import java.net.UnknownHostException;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.util.*;
@@ -56,7 +57,7 @@ public class Bailiff
     protected InetAddress myInetAddress;
 
     //HashMap of active agents in the Bailiff
-    ConcurrentHashMap<UUID, agitator> hmap = new ConcurrentHashMap<UUID, agitator>();
+    ConcurrentHashMap<UUID, agitator> localAgents = new ConcurrentHashMap<UUID, agitator>();
 
 
     protected void debugMsg(String s) {
@@ -234,6 +235,10 @@ public class Bailiff
          * us). Then we invoke the requested entry point on the client object.
          */
         public void run() {
+            localAgents.put(id, this);
+            debugMsg("[" + id + "] START RUNNING");
+            debugMsg("[" + id + "] " + localAgents.toString());
+
             try {
                 myMethod.invoke(myObj, myArgs);
             } catch (Throwable t) {
@@ -241,6 +246,10 @@ public class Bailiff
                     log.entry(t);
                 }
             }
+
+            localAgents.remove(id);
+            debugMsg("[" + id + "] END RUNNING");
+            debugMsg("[" + id + "] " + localAgents.toString());
         }
     } // class agitator
 
@@ -323,7 +332,7 @@ public class Bailiff
                     + "\" args=\"" + args + "\"/>");
         }
         agitator agt = new agitator(obj, cb, args);
-        hmap.put(agt.getUUID(), agt);
+        localAgents.put(agt.getUUID(), agt);
         agt.initialize();
         //System.out.println( agt + " added to hmap");
         agt.start();
@@ -415,7 +424,7 @@ public class Bailiff
      * to the Bailiff. There may also be agitator threads active. Some house-
      * holding counters and a shutdown method are attractive extensions.
      *
-     * @param args The array of commandline strings, Java standard.
+     * @param argv The array of commandline strings, Java standard.
      * @throws java.net.UnknownHostException Thrown if the name of the
      *                                       local host cannot be obtained.
      * @throws java.rmi.RemoteException      Thrown if there is a RMI problem.
