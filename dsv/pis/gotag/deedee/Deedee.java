@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 
+import dsv.pis.gotag.player.TagPlayer;
 import net.jini.core.lookup.*;
 import net.jini.core.entry.*;
 import net.jini.lookup.*;
@@ -28,7 +29,7 @@ import dsv.pis.gotag.bailiff.BailiffInterface;
  * registered to a particular user (started with the -user switch).
  * When she finds one, she migrates there and pops a dialogue with her message.
  */
-public class Deedee implements Serializable {
+public class Deedee implements Serializable, TagPlayer {
 
     /**
      * The service discovery manager helps us locating Jini lookup servers
@@ -222,5 +223,10 @@ public class Deedee implements Serializable {
                 300000);
         de.topLevel();
         System.exit(0);
+    }
+
+    @Override
+    public boolean isIt() {
+        return false; // TODO : just for testing
     }
 }

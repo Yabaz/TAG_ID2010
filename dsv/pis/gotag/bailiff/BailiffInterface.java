@@ -5,9 +5,11 @@
 
 package dsv.pis.gotag.bailiff;
 
+import dsv.pis.gotag.exceptions.NoSuchAgentException;
+import dsv.pis.gotag.player.TagPlayer;
+
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -51,7 +53,7 @@ public interface BailiffInterface
      *                                         callback is not found (which happen if the name is spelled wrong,
      *                                         the number of arguments is wrong or are of the wrong type).
      */
-    public void migrate(Object obj, String cb, Object[] args)
+    public void migrate(TagPlayer obj, String cb, Object[] args)
             throws
             java.rmi.RemoteException,
             java.lang.NoSuchMethodException;
@@ -64,7 +66,10 @@ public interface BailiffInterface
      * @throws RemoteException
      */
     public ArrayList<UUID> getAgentsNames()
-            throws RemoteException;
+            throws java.rmi.RemoteException;
 
+
+    public boolean isIt(UUID name)
+            throws java.rmi.RemoteException, NoSuchAgentException;
 
 }

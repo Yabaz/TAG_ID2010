@@ -11,14 +11,13 @@ import java.io.*;
 import java.net.*;
 import java.net.UnknownHostException;
 import java.rmi.*;
-import java.rmi.server.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import dsv.pis.gotag.exceptions.NoSuchAgentException;
+import dsv.pis.gotag.player.TagPlayer;
 import net.jini.core.entry.*;
 import net.jini.core.lookup.*;
-import net.jini.core.discovery.*;
-import net.jini.lease.*;
 import net.jini.lookup.*;
 import net.jini.lookup.entry.*;
 
@@ -145,7 +144,7 @@ public class Bailiff
      */
     private class agitator extends Thread {
 
-        protected Object myObj;    // The client object
+        protected TagPlayer myObj;    // The client object
         protected String myCb;    // The name of the entry point method
         protected Object[] myArgs;    // Arguments to the entry point method
         protected java.lang.reflect.Method myMethod; // Ref. to entry point method
@@ -163,7 +162,7 @@ public class Bailiff
          * @param cb   The name of the entry point method (callback)
          * @param args Arguments to the entry point method
          */
-        public agitator(Object obj, String cb, Object[] args) {
+        public agitator(TagPlayer obj, String cb, Object[] args) {
             myObj = obj;
             myCb = cb;
             myArgs = args;
@@ -215,29 +214,45 @@ public class Bailiff
             id = (UUID) retour;
         }
 
+
+        public boolean isIt() {
+            return myObj.isIt();
+        }
+
         //getUUID
         public UUID getUUID() {
             return id;
         }
 
-        ;
 
         //toString
         public String toString() {
             return id.toString();
         }
 
-        ;
-
-
         /**
          * Overrides the default run() method in class Thread (a superclass to
          * us). Then we invoke the requested entry point on the client object.
          */
         public void run() {
-            localAgents.put(id, this);
-            debugMsg("[" + id + "] START RUNNING");
-            debugMsg("[" + id + "] " + localAgents.toString());
+
+            synchronized (localAgents) {
+                while (localAgents.containsKey(id)) {
+                    try {
+                        // We need to wait in case an agitator this agitator will migrate in the same
+                        // bailiff
+                        localAgents.wait();
+                    } catch (InterruptedException e) {
+                        log.entry("[InterruptedException] agitator " + id);
+                    }
+                }
+
+
+                // Add the agent in the list of current agents
+                localAgents.put(id, this);
+                debugMsg("[" + id + "] START RUNNING");
+                debugMsg("[" + id + "] " + localAgents.toString());
+            }
 
             try {
                 myMethod.invoke(myObj, myArgs);
@@ -246,9 +261,15 @@ public class Bailiff
                     log.entry(t);
                 }
             } finally {
-                localAgents.remove(id);
-                debugMsg("[" + id + "] END RUNNING");
-                debugMsg("[" + id + "] " + localAgents.toString());
+                synchronized (localAgents) {
+                    // Remove the agent from list of current agents
+                    localAgents.remove(id);
+                    debugMsg("[" + id + "] " + localAgents.toString());
+                    debugMsg("[" + id + "] END RUNNING");
+
+                    // Notify a possible waiting thread
+                    localAgents.notifyAll();
+                }
             }
         }
     } // class agitator
@@ -323,7 +344,7 @@ public class Bailiff
      * @throws NoSuchMethodException Thrown if the specified entry method
      *                               does not exist with the expected signature.
      */
-    public void migrate(Object obj, String cb, Object[] args)
+    public void migrate(TagPlayer obj, String cb, Object[] args)
             throws
             java.rmi.RemoteException,
             java.lang.NoSuchMethodException {
@@ -332,7 +353,6 @@ public class Bailiff
                     + "\" args=\"" + args + "\"/>");
         }
         agitator agt = new agitator(obj, cb, args);
-        localAgents.put(agt.getUUID(), agt);
         agt.initialize();
         //System.out.println( agt + " added to hmap");
         agt.start();
@@ -344,6 +364,19 @@ public class Bailiff
     public ArrayList<UUID> getAgentsNames() throws RemoteException {
         Set<UUID> keySet = localAgents.keySet();
         return new ArrayList<>(keySet);
+    }
+
+    @Override
+    public boolean isIt(UUID name) throws RemoteException, NoSuchAgentException {
+        // Is the agent in the Bailiff ?
+        debugMsg("TRY TO FIND UUID : [" + name.toString() + "] in " + localAgents.toString());
+
+        if (!localAgents.containsKey(name)) {
+            debugMsg("NO SUCH AGENT EXCEPTION");
+            throw new NoSuchAgentException(name);
+        }
+
+        return localAgents.get(name).isIt();
     }
 
     /**

@@ -11,6 +11,7 @@ package dsv.pis.gotag.dexter;
 
 import java.io.*;
 import java.lang.*;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.UUID;
 
@@ -18,6 +19,8 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 
+import dsv.pis.gotag.exceptions.NoSuchAgentException;
+import dsv.pis.gotag.player.TagPlayer;
 import net.jini.core.lookup.*;
 import net.jini.lookup.*;
 
@@ -29,7 +32,7 @@ import dsv.pis.gotag.bailiff.BailiffInterface;
  * test that the system is operating, or as a template for more
  * evolved agents.
  */
-public class Dexter implements Serializable {
+public class Dexter implements Serializable, TagPlayer {
     //UUID = unique identifier of the agent
     protected UUID id;
 
@@ -142,6 +145,8 @@ public class Dexter implements Serializable {
             throws
             java.io.IOException {
         Random rnd = new Random();
+
+        debugMsg("[START TOP LEVEL]");
 
         // Create a Jini service discovery manager to help us interact with
         // the Jini lookup service.
@@ -260,7 +265,21 @@ public class Dexter implements Serializable {
                     // This is the spot where Dexter tries to migrate.
 
                     try {
+                        // TODO : Remove debugging
+                        ArrayList<UUID> agentsList = bfi.getAgentsNames();
+                        debugMsg("List of agents | Size = " + agentsList.size());
+                        for (int i = 0; i < agentsList.size(); ++i) {
+                            try {
+                                debugMsg("Agent " + i + " : " + agentsList.get(i)
+                                        + " | isIt = " + (bfi.isIt(agentsList.get(i)) ? "YES" : "NO"));
+                            } catch (NoSuchAgentException noSuchAgentInCurrentBailiff) {
+                                debugMsg("Agent " + i + " : " + agentsList.get(i));
+                            }
+                        }
+
+                        debugMsg(this + " trying to migrate...");
                         bfi.migrate(this, "topLevel", new Object[]{});
+                        debugMsg(this + " migrated...");
                         SDM.terminate();    // SUCCESS
                         if (!noFace) {
                             dexFace.stopAnimation();
@@ -323,5 +342,10 @@ public class Dexter implements Serializable {
         Dexter dx = new Dexter(debug, noFace);
         dx.topLevel();
         System.exit(0);
+    }
+
+    @Override
+    public boolean isIt() {
+        return false; // TODO : just for testing
     }
 }
