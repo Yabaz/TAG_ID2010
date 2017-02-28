@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
 
 import dsv.pis.gotag.exceptions.NoSuchAgentException;
@@ -35,6 +36,10 @@ import dsv.pis.gotag.bailiff.BailiffInterface;
 public class Dexter implements Serializable, TagPlayer {
     //UUID = unique identifier of the agent
     protected UUID id;
+
+    AtomicBoolean isIt = new AtomicBoolean(false);
+
+    AtomicBoolean isMigrating = new AtomicBoolean(false);
 
     /**
      * The string name of the Bailiff service interface, used when
@@ -141,12 +146,17 @@ public class Dexter implements Serializable, TagPlayer {
      * to migrate to that Bailiff. If the ping or the migrates fails, Dexter
      * gives up on that Bailiff and tries another.
      */
-    public void topLevel()
+    public void topLevel(boolean isIt)
             throws
             java.io.IOException {
+
+        // Set the it property
+        this.isIt.set(isIt);
+
         Random rnd = new Random();
 
-        debugMsg("[START TOP LEVEL]");
+        debugMsg("[" + this + "] START TOP LEVEL");
+        debugMsg("[" + this + "] isIt = " + (isIt ? "YES" : "NO"));
 
         // Create a Jini service discovery manager to help us interact with
         // the Jini lookup service.
@@ -278,7 +288,11 @@ public class Dexter implements Serializable, TagPlayer {
                         }
 
                         debugMsg(this + " trying to migrate...");
-                        bfi.migrate(this, "topLevel", new Object[]{});
+
+                        this.isMigrating.set(true);
+                        bfi.migrate(this, "topLevel", new Object[]{isIt});
+                        this.isMigrating.compareAndSet(true, false);
+
                         debugMsg(this + " migrated...");
                         SDM.terminate();    // SUCCESS
                         if (!noFace) {
@@ -286,14 +300,11 @@ public class Dexter implements Serializable, TagPlayer {
                             f.setVisible(false);
                         }
                         return;        // SUCCESS
-                    } catch (java.rmi.RemoteException e) { // FAILURE
+                    } catch (java.rmi.RemoteException | java.lang.NoSuchMethodException e ) { // FAILURE
                         if (debug) {
                             e.printStackTrace();
                         }
-                    } catch (java.lang.NoSuchMethodException e) { // FAILURE
-                        if (debug) {
-                            e.printStackTrace();
-                        }
+                        this.isMigrating.compareAndSet(true, false);
                     }
 
                     debugMsg("Didn't make the jump...");
@@ -340,12 +351,22 @@ public class Dexter implements Serializable, TagPlayer {
         // We will try without it first
         // System.setSecurityManager (new RMISecurityManager ());
         Dexter dx = new Dexter(debug, noFace);
-        dx.topLevel();
+        dx.topLevel(false);
         System.exit(0);
     }
 
     @Override
     public boolean isIt() {
-        return false; // TODO : just for testing
+        return isIt.get();
+    }
+
+    @Override
+    public boolean itAgent() {
+        // If is migrating, cannot be it
+        if (isMigrating.get())
+            return false;
+
+        // Otherwise, become the it agent
+        return isIt.compareAndSet(false, true);
     }
 }

@@ -6,4 +6,6 @@ package dsv.pis.gotag.player;
 public interface TagPlayer {
 
     public boolean isIt();
+
+    public boolean itAgent();
 }

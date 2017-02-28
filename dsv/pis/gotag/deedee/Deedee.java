@@ -229,4 +229,9 @@ public class Deedee implements Serializable, TagPlayer {
     public boolean isIt() {
         return false; // TODO : just for testing
     }
+
+    @Override
+    public boolean itAgent() {
+        return false; // TODO : just for testing
+    }
 }
