@@ -63,7 +63,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
      * @param msg The message to print.
      */
     protected void debugMsg(String msg) {
-        if (debug) System.out.println(msg);
+        if (debug) System.out.println(msg + "\t| {" + this + "}");
     }
 
 
@@ -132,8 +132,9 @@ public class PlayerAgent implements Serializable, TagPlayer {
         // Local Bailiff
         BailiffInterface localBailiff = null;
 
-        debugMsg("[" + this + "] Start top level");
-        debugMsg("[" + this + "] isIt = " + (this.isIt.get() ? "YES" : "NO"));
+        debugMsg("\n[Start Toplevel] isIt = " + (this.isIt.get() ? "YES" : "NO"));
+        if (debug)
+            System.out.println();
 
         // Create a Jini service discovery manager to help us interact with
         // the Jini lookup service.
@@ -148,20 +149,20 @@ public class PlayerAgent implements Serializable, TagPlayer {
             // The restraint sleep is just there so we don't get hyperactive
             // and confuse the slow human beings.
 
-            debugMsg("Entering restraint sleep.");
+            debugMsg("Entering restraint sleep");
 
             snooze(5000);
 
-            debugMsg("Leaving restraint sleep.");
+            debugMsg("Leaving restraint sleep");
 
             // Enter a loop in which Dexter tries to find some Bailiffs.
 
             do {
 
                 if (0 < retryInterval) {
-                    debugMsg("No Bailiffs detected - sleeping.");
+                    debugMsg("[No bailiff detected] Sleeping");
                     snooze(retryInterval);
-                    debugMsg("Waking up.");
+                    debugMsg("[No Bailiff detected] Waking up");
                 }
 
                 // Put our query, expressed as a service template, to the Jini
@@ -211,7 +212,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
 
             // 2) If not in a bailiff => migrate in one chosen randomly
             if (localBailiff == null) {
-                debugMsg("[" + this + "] Not in a bailiff ");
+                debugMsg("Not in a bailiff");
                 if (migrate(svcItems, nofItems))
                     return; // Migrate = SUCCESS
                 else
@@ -222,11 +223,11 @@ public class PlayerAgent implements Serializable, TagPlayer {
             // If it => try to it a player agent
             if (this.isIt.get()) {
                 try {
-                    debugMsg("[" + this + "] IT agent in action");
+                    debugMsg("[IT Agent] In action");
 
                     // 3) Try to it one agent in the local bailiff
                     ArrayList<UUID> agentsList = localBailiff.getAgentsNames();
-                    debugMsg("List of agents | Size = " + agentsList.size());
+                    debugMsg("Nb agent in local bailiff = " + agentsList.size());
 
                     int nbAgents = agentsList.size();
                     int nbAttempts = 0;
@@ -244,7 +245,9 @@ public class PlayerAgent implements Serializable, TagPlayer {
                             if (localBailiff.itAgent(agent)) {
                                 // It successfull
                                 this.isIt.compareAndSet(true, false);
-                                debugMsg("Agent " + this + " succeeded to it agent " + agent + " !");
+                                debugMsg("[IT SUCCEEDED] Agent succeeded to it agent " + agent + " !");
+                                if (debug)
+                                    System.out.println();
                                 continue;
                             }
                         } catch (NoSuchAgentException e) {
@@ -268,7 +271,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
                 }
 
             } else {
-                debugMsg("[" + this + "] Agent in action ");
+                debugMsg("[Simple Agent] In action ");
 
                 snooze(2000); // We put a snooze to avoid agent to always migrating and therefore to never be 'itable'
 
@@ -278,9 +281,6 @@ public class PlayerAgent implements Serializable, TagPlayer {
                 else
                     continue;
             }
-
-            debugMsg("They were all bad.");
-
         } // for ever // go back up and try to find more Bailiffs
     }
 
@@ -303,7 +303,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
             // Try to ping the selected Bailiff.
             BailiffInterface bfi = pingBailiff(obj);
 
-            debugMsg(bfi != null ? "Accepted." : "Not accepted.");
+            debugMsg("[Ping Result] " + (bfi != null ? "Accepted." : "Not accepted."));
 
             // If the ping failed, delete that Bailiff from the array and
             // try another. The current (idx) entry in the list of service items
@@ -315,10 +315,8 @@ public class PlayerAgent implements Serializable, TagPlayer {
                 continue;        // Back to top of while-loop.
             } else {
 
-                debugMsg(this + " trying to jump...");
 
-                // This is the spot where Dexter tries to migrate.
-
+                // This is the spot where PlayerAgent tries to migrate
                 try {
                     // TODO : Remove debugging
                     ArrayList<UUID> agentsList = bfi.getAgentsNames();
@@ -332,13 +330,13 @@ public class PlayerAgent implements Serializable, TagPlayer {
                         }
                     }
 
-                    debugMsg(this + " trying to migrate... [isIT = " + (this.isIt.get() ? "YES" : "NO") + "]");
+                    debugMsg("[Trying to migrate] isIT = " + (this.isIt.get() ? "YES" : "NO"));
 
                     this.isMigrating.set(true);
                     bfi.migrate(this, "topLevel", new Object[]{isIt.get()});
                     //this.isMigrating.compareAndSet(true, false);
 
-                    debugMsg(this + " migrated...");
+                    debugMsg("[Migrating Succeeded]");
                     SDM.terminate();    // SUCCESS
                     return true;        // SUCCESS
                 } catch (java.rmi.RemoteException | java.lang.NoSuchMethodException e) { // FAILURE
@@ -348,7 +346,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
                     //this.isMigrating.compareAndSet(true, false);
                 }
 
-                debugMsg("Didn't make the jump...");
+                debugMsg("[Migrating failed]");
             }
         }    // while there are candidates left
 
@@ -369,8 +367,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
         BailiffInterface bfi = null;
 
         // Try to ping the selected Bailiff.
-        debugMsg(this + "Trying to ping...");
-
+        debugMsg("[Trying to ping]");
         try {
             if (objToPing instanceof BailiffInterface) {
                 bfi = (BailiffInterface) objToPing;
@@ -433,16 +430,18 @@ public class PlayerAgent implements Serializable, TagPlayer {
 
     @Override
     public boolean itAgent() {
-        debugMsg("[TRY TO IT] Try to it agent " + this);
+        debugMsg("\n[TRY TO IT] Someone try to it me...!");
 
         // If is migrating, cannot be it
         if (isMigrating.get()) {
-            debugMsg("[IT FAILED] It failed because agent " + this + " is migrating");
+            debugMsg("[IT FAILED] We are not it because I am migrating :)");
+            if (debug)
+                System.out.println();
             return false;
         }
 
         // Otherwise, become the it agent
-        debugMsg("[IT SUCCESS] Agent " + this + " has just been it !");
+        debugMsg("[IT SUCCESS] I have been it :( !");
         return isIt.compareAndSet(false, true);
     }
 }
