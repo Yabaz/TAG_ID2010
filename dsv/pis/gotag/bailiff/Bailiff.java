@@ -219,7 +219,9 @@ public class Bailiff
             return myObj.isIt();
         }
 
-        public boolean itAgent() { return myObj.itAgent(); }
+        public boolean itAgent() {
+            return myObj.itAgent();
+        }
 
         //getUUID
         public UUID getUUID() {
@@ -349,10 +351,9 @@ public class Bailiff
             throws
             java.rmi.RemoteException,
             java.lang.NoSuchMethodException {
-        if (debug) {
-            log.entry("<migrate obj=\"" + obj + "\" cb=\"" + cb
-                    + "\" args=\"" + args + "\"/>");
-        }
+        log.entry("<migrate obj=\"" + obj + "\" isIT=\"" + (obj.isIt() ? "YES" : "NO") + "\" cb=\"" + cb
+                + "\" args=\"" + args + "\"/>");
+
         agitator agt = new agitator(obj, cb, args);
         agt.initialize();
         //System.out.println( agt + " added to hmap");
