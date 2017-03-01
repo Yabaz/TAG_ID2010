@@ -160,9 +160,9 @@ public class PlayerAgent implements Serializable, TagPlayer {
             do {
 
                 if (0 < retryInterval) {
-                    debugMsg("[No bailiff detected] Sleeping");
+                    //debugMsg("[No bailiff detected] Sleeping");
                     snooze(retryInterval);
-                    debugMsg("[No Bailiff detected] Waking up");
+                    //debugMsg("[No Bailiff detected] Waking up");
                 }
 
                 // Put our query, expressed as a service template, to the Jini
@@ -213,17 +213,17 @@ public class PlayerAgent implements Serializable, TagPlayer {
             // 2) If not in a bailiff => migrate in one chosen randomly
             if (localBailiff == null) {
                 debugMsg("Not in a bailiff");
-                if (migrate(svcItems, nofItems))
+                if (migrate(svcItems, nofItems, null))
                     return; // Migrate = SUCCESS
                 else
                     continue;
             }
 
 
-            // If it => try to it a player agent
+            // If it => try to it a player agent in the local bailiff
             if (this.isIt.get()) {
                 try {
-                    debugMsg("[IT Agent] In action");
+                    debugMsg("\n[IT Agent] In action");
 
                     // 3) Try to it one agent in the local bailiff
                     ArrayList<UUID> agentsList = localBailiff.getAgentsNames();
@@ -250,15 +250,13 @@ public class PlayerAgent implements Serializable, TagPlayer {
                                     System.out.println();
                                 continue;
                             }
-                        } catch (NoSuchAgentException e) {
-                            if (debug) {
-                                e.printStackTrace();
-                            }
-                        }
+                        } catch (NoSuchAgentException e) {}
                     }
 
                     // If still it agent => migrate in another bailiff
-                    if (migrate(svcItems, nofItems))
+                    // TODO : improve by looking for a bailiff with some agents in
+
+                    if (migrate(svcItems, nofItems, null))
                         return; // Migrate = SUCCESS
                     else
                         continue;
@@ -271,21 +269,45 @@ public class PlayerAgent implements Serializable, TagPlayer {
                 }
 
             } else {
-                debugMsg("[Simple Agent] In action ");
+                // Not the it agent
+                debugMsg("\n[Simple Agent] In action ");
 
-                snooze(2000); // We put a snooze to avoid agent to always migrating and therefore to never be 'itable'
+                // 3) Are we in the same bailiff than the it agent ?
+                try {
+                    ArrayList<UUID> agentsList = localBailiff.getAgentsNames();
+                    debugMsg("Nb agent in local bailiff = " + agentsList.size());
 
-                // Not a it agent
-                if (migrate(svcItems, nofItems))
-                    return; // Migrate = SUCCESS
-                else
-                    continue;
+                    for (UUID agent : agentsList) {
+                        try {
+                            if (localBailiff.isIt(agent)) {
+                                // If yes -> need to migrate now
+                                debugMsg("[Alert] The it agent is really closed...");
+
+                                if (migrate(svcItems, nofItems, localBailiff))
+                                    return; // Migrate = SUCCESS
+                                else
+                                    continue;
+                            }
+
+                            // If no -> no need to move for the moment...
+                            snooze(2000); // We put a snooze to avoid agent to always migrating and therefore to never be 'itable'
+
+                        } catch (NoSuchAgentException e) {
+                            // The agent has migrated => no worry
+                        }
+                    }
+                }  catch (java.rmi.RemoteException e) { // FAILURE
+                    if (debug) {
+                        e.printStackTrace();
+                    }
+                    localBailiff = null;
+                }
             }
         } // for ever // go back up and try to find more Bailiffs
     }
 
 
-    private boolean migrate(ServiceItem[] svcItems, int nbItems) {
+    private boolean migrate(ServiceItem[] svcItems, int nbItems, BailiffInterface bfiToAvoid) {
         // While we still have at least one Bailiff service to try...
         int nofItems = nbItems;
 
@@ -315,6 +337,9 @@ public class PlayerAgent implements Serializable, TagPlayer {
                 continue;        // Back to top of while-loop.
             } else {
 
+                // If we want to migrate for avoiding the it agent
+                if (bfi.equals(bfiToAvoid))
+                    continue;
 
                 // This is the spot where PlayerAgent tries to migrate
                 try {
