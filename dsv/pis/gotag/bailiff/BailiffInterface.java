@@ -62,16 +62,38 @@ public interface BailiffInterface
     /**
      * To retrieve the names of agents in the requested Bailiff
      *
-     * @return
+     * @return An list containing the UUID of each agent in the local Bailiff
      * @throws RemoteException
      */
     public ArrayList<UUID> getAgentsNames()
             throws java.rmi.RemoteException;
 
 
+    /**
+     * For asking to an agent if he is 'it'.
+     * If the agent has migrated and is not in the Bailiff anymore, a {@link java.util.NoSuchElementException}
+     * is thrown. Otherwise, the remote agent return true if he is the 'it' agent or false if he is not.
+     *
+     * @param name The UUID of the remote agent
+     * @return true if the agent with the UUID name is 'it', otherwise false
+     * @throws java.rmi.RemoteException
+     * @throws NoSuchAgentException
+     */
     public boolean isIt(UUID name)
             throws java.rmi.RemoteException, NoSuchAgentException;
 
+    /**
+     * Try to 'it' a remote agent.
+     * If the remote agent has migrated and is not in the Bailiff anymore,
+     * a {@link java.util.NoSuchElementException} is thrown.
+     * If the remote agent is migrating, the 'it' will fail and the method will return false.
+     * Otherwise, the 'it' succeeds and the method returns true.
+     *
+     * @param name The UUID of the remote agent
+     * @return true if the 'it' succeeds, otherwise false
+     * @throws java.rmi.RemoteException
+     * @throws NoSuchAgentException
+     */
     public boolean itAgent(UUID name)
             throws java.rmi.RemoteException, NoSuchAgentException;
 

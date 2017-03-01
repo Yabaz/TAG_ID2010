@@ -368,6 +368,8 @@ public class Bailiff
         return new ArrayList<>(keySet);
     }
 
+    // In BailiffInterface:
+
     @Override
     public boolean isIt(UUID name) throws RemoteException, NoSuchAgentException {
         // Is the agent in the Bailiff ?
@@ -379,6 +381,8 @@ public class Bailiff
 
         return localAgents.get(name).isIt();
     }
+
+    // In BailiffInterface:
 
     @Override
     public boolean itAgent(UUID name) throws RemoteException, NoSuchAgentException {

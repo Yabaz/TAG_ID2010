@@ -66,7 +66,6 @@ public class PlayerAgent implements Serializable, TagPlayer {
         if (debug) System.out.println(msg + "\t| {" + this + "}");
     }
 
-
     /**
      * Returns a string representation of this service instance.
      *
@@ -213,7 +212,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
             // 2) If not in a bailiff => migrate in one chosen randomly
             if (localBailiff == null) {
                 debugMsg("Not in a bailiff");
-                if (migrate(svcItems, nofItems, null, false))
+                if (migrate(svcItems,  null, false))
                     return; // Migrate = SUCCESS
                 else
                     continue;
@@ -250,13 +249,14 @@ public class PlayerAgent implements Serializable, TagPlayer {
                                     System.out.println();
                                 continue;
                             }
-                        } catch (NoSuchAgentException e) {}
+                        } catch (NoSuchAgentException e) {
+                        }
                     }
 
                     // If still it agent => migrate in another bailiff
                     // TODO : improve by looking for a bailiff with some agents in
 
-                    if (migrate(svcItems, nofItems, localBailiff, true))
+                    if (migrate(svcItems, localBailiff, true))
                         return; // Migrate = SUCCESS
                     else
                         continue;
@@ -283,7 +283,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
                                 // If yes -> need to migrate now
                                 debugMsg("[Alert] The it agent is really closed...");
 
-                                if (migrate(svcItems, nofItems, localBailiff, false))
+                                if (migrate(svcItems, localBailiff, false))
                                     return; // Migrate = SUCCESS
                                 else
                                     continue;
@@ -296,7 +296,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
                             // The agent has migrated => no worry
                         }
                     }
-                }  catch (java.rmi.RemoteException e) { // FAILURE
+                } catch (java.rmi.RemoteException e) { // FAILURE
                     if (debug) {
                         e.printStackTrace();
                     }
@@ -306,10 +306,25 @@ public class PlayerAgent implements Serializable, TagPlayer {
         } // for ever // go back up and try to find more Bailiffs
     }
 
-
-    private boolean migrate(ServiceItem[] svcItems, int nbItems, BailiffInterface bfiToAvoid, boolean itAgent) {
+    /**
+     * Try to migrate the Player agent in a new bailiff.
+     * Used for both a normal agent (1) and the 'it' agent (2).
+     * If :
+     *  1) Avoid to migrate in a Bailiff where a 'it' agent is inside.
+     *  2) Try to migrate in a Bailiff containing some agents for trying to 'it' one of them.
+     *
+     * Return true if the migration suceeds, false otherwise.
+     *
+     * @param svcItems An array containing the Jini services (Bailiff).
+     * @param bfiToAvoid A bailiff to avoid, for example, if a agent is currently with an 'it' agent in a Bailiff, he
+     *                   will avoid to migrate in the same Bailiff.
+     * @param itAgent True if the migrating agent is an 'it' agent. False otherwise. We need a distinction because
+     *                their migrating stategies are different.
+     * @return
+     */
+    private boolean migrate(ServiceItem[] svcItems, BailiffInterface bfiToAvoid, boolean itAgent) {
         // While we still have at least one Bailiff service to try...
-        int nofItems = nbItems;
+        int nofItems = svcItems.length;
 
         while (0 < nofItems) {
 
@@ -318,7 +333,6 @@ public class PlayerAgent implements Serializable, TagPlayer {
             if (1 < nofItems) {
                 idx = rnd.nextInt(nofItems);
             }
-
 
             Object obj = svcItems[idx].service; // Get the service object
 
@@ -343,15 +357,17 @@ public class PlayerAgent implements Serializable, TagPlayer {
 
                 // This is the spot where PlayerAgent tries to migrate
                 try {
-                    // TODO : Remove debugging
                     ArrayList<UUID> agentsList = bfi.getAgentsNames();
-                    debugMsg("List of agents | Size = " + agentsList.size());
-                    for (int i = 0; i < agentsList.size(); ++i) {
-                        try {
-                            debugMsg("Agent " + i + " : " + agentsList.get(i)
-                                    + " | isIt = " + (bfi.isIt(agentsList.get(i)) ? "YES" : "NO"));
-                        } catch (NoSuchAgentException noSuchAgentInCurrentBailiff) {
-                            debugMsg("Agent " + i + " : " + agentsList.get(i));
+
+                    if (debug) {
+                        debugMsg("List of agents | Size = " + agentsList.size());
+                        for (int i = 0; i < agentsList.size(); ++i) {
+                            try {
+                                debugMsg("Agent " + i + " : " + agentsList.get(i)
+                                        + " | isIt = " + (bfi.isIt(agentsList.get(i)) ? "YES" : "NO"));
+                            } catch (NoSuchAgentException noSuchAgentInCurrentBailiff) {
+                                debugMsg("Agent " + i + " : " + agentsList.get(i));
+                            }
                         }
                     }
 
@@ -366,7 +382,6 @@ public class PlayerAgent implements Serializable, TagPlayer {
 
                     this.isMigrating.set(true);
                     bfi.migrate(this, "topLevel", new Object[]{isIt.get()});
-                    //this.isMigrating.compareAndSet(true, false);
 
                     debugMsg("[Migrating Succeeded]");
                     SDM.terminate();    // SUCCESS
@@ -375,8 +390,8 @@ public class PlayerAgent implements Serializable, TagPlayer {
                     if (debug) {
                         e.printStackTrace();
                     }
-                    //this.isMigrating.compareAndSet(true, false);
                 }
+
 
                 debugMsg("[Migrating failed]");
             }
@@ -466,7 +481,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
 
         // If is migrating, cannot be it
         if (isMigrating.get()) {
-            debugMsg("[IT FAILED] We are not it because I am migrating :)");
+            debugMsg("[IT FAILED] Not it because I am migrating :)");
             if (debug)
                 System.out.println();
             return false;
