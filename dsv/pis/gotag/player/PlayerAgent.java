@@ -213,7 +213,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
             // 2) If not in a bailiff => migrate in one chosen randomly
             if (localBailiff == null) {
                 debugMsg("Not in a bailiff");
-                if (migrate(svcItems, nofItems, null))
+                if (migrate(svcItems, nofItems, null, false))
                     return; // Migrate = SUCCESS
                 else
                     continue;
@@ -256,7 +256,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
                     // If still it agent => migrate in another bailiff
                     // TODO : improve by looking for a bailiff with some agents in
 
-                    if (migrate(svcItems, nofItems, null))
+                    if (migrate(svcItems, nofItems, localBailiff, true))
                         return; // Migrate = SUCCESS
                     else
                         continue;
@@ -283,7 +283,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
                                 // If yes -> need to migrate now
                                 debugMsg("[Alert] The it agent is really closed...");
 
-                                if (migrate(svcItems, nofItems, localBailiff))
+                                if (migrate(svcItems, nofItems, localBailiff, false))
                                     return; // Migrate = SUCCESS
                                 else
                                     continue;
@@ -307,7 +307,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
     }
 
 
-    private boolean migrate(ServiceItem[] svcItems, int nbItems, BailiffInterface bfiToAvoid) {
+    private boolean migrate(ServiceItem[] svcItems, int nbItems, BailiffInterface bfiToAvoid, boolean itAgent) {
         // While we still have at least one Bailiff service to try...
         int nofItems = nbItems;
 
@@ -338,7 +338,7 @@ public class PlayerAgent implements Serializable, TagPlayer {
             } else {
 
                 // If we want to migrate for avoiding the it agent
-                if (bfi.equals(bfiToAvoid))
+                if (!itAgent && (bfi == bfiToAvoid))
                     continue;
 
                 // This is the spot where PlayerAgent tries to migrate
@@ -353,6 +353,13 @@ public class PlayerAgent implements Serializable, TagPlayer {
                         } catch (NoSuchAgentException noSuchAgentInCurrentBailiff) {
                             debugMsg("Agent " + i + " : " + agentsList.get(i));
                         }
+                    }
+
+                    // If it agent, do not want a bailiff with no player in
+                    if (itAgent && (agentsList.size() == 0 || bfi == bfiToAvoid)) {
+                        svcItems[idx] = svcItems[nofItems - 1];
+                        nofItems -= 1;
+                        continue;
                     }
 
                     debugMsg("[Trying to migrate] isIT = " + (this.isIt.get() ? "YES" : "NO"));
