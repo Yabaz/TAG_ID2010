@@ -56,7 +56,7 @@ public class Bailiff
     protected InetAddress myInetAddress;
 
     //HashMap of active agents in the Bailiff
-    ConcurrentHashMap<UUID, agitator> localAgents = new ConcurrentHashMap<UUID, agitator>();
+    HashMap<UUID, agitator> localAgents = new HashMap<UUID, agitator>();
 
 
     protected void debugMsg(String s) {
@@ -219,6 +219,8 @@ public class Bailiff
             return myObj.isIt();
         }
 
+        public boolean itAgent() { return myObj.itAgent(); }
+
         //getUUID
         public UUID getUUID() {
             return id;
@@ -247,11 +249,10 @@ public class Bailiff
                     }
                 }
 
-
                 // Add the agent in the list of current agents
                 localAgents.put(id, this);
-                debugMsg("[" + id + "] START RUNNING");
-                debugMsg("[" + id + "] " + localAgents.toString());
+                //debugMsg("[" + id + "] Start running");
+                //debugMsg("[" + id + "] " + localAgents.toString());
             }
 
             try {
@@ -264,11 +265,11 @@ public class Bailiff
                 synchronized (localAgents) {
                     // Remove the agent from list of current agents
                     localAgents.remove(id);
-                    debugMsg("[" + id + "] " + localAgents.toString());
-                    debugMsg("[" + id + "] END RUNNING");
+                    //debugMsg("[" + id + "] " + localAgents.toString());
+                    //debugMsg("[" + id + "] End running");
 
                     // Notify a possible waiting thread
-                    localAgents.notifyAll();
+                    localAgents.notify();
                 }
             }
         }
@@ -369,14 +370,29 @@ public class Bailiff
     @Override
     public boolean isIt(UUID name) throws RemoteException, NoSuchAgentException {
         // Is the agent in the Bailiff ?
-        debugMsg("TRY TO FIND UUID : [" + name.toString() + "] in " + localAgents.toString());
+        //debugMsg("Try to find UUID: [" + name.toString() + "] in " + localAgents.toString());
 
         if (!localAgents.containsKey(name)) {
-            debugMsg("NO SUCH AGENT EXCEPTION");
             throw new NoSuchAgentException(name);
         }
 
         return localAgents.get(name).isIt();
+    }
+
+    @Override
+    public boolean itAgent(UUID name) throws RemoteException, NoSuchAgentException {
+        // Is the agent in the Bailiff ?
+        //debugMsg("Try to find UUID: [" + name.toString() + "] in " + localAgents.toString());
+
+        if (!localAgents.containsKey(name)) {
+            throw new NoSuchAgentException(name);
+        }
+
+        boolean res = localAgents.get(name).itAgent();
+        if (res)
+            log.entry("<it agent=\"" + name + "\"/>");
+
+        return res;
     }
 
     /**

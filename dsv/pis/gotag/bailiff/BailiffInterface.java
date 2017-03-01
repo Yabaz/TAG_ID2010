@@ -72,4 +72,7 @@ public interface BailiffInterface
     public boolean isIt(UUID name)
             throws java.rmi.RemoteException, NoSuchAgentException;
 
+    public boolean itAgent(UUID name)
+            throws java.rmi.RemoteException, NoSuchAgentException;
+
 }
